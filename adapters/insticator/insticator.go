@@ -24,6 +24,18 @@ func Builder(bidderName openrtb_ext.BidderName, config config.Adapter, server co
 	return bidder, nil
 }
 
+// getMediaTypeForImp figures out which media type this bid is for
+func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
+	switch bid.MType {
+	case openrtb2.MarkupBanner:
+		return openrtb_ext.BidTypeBanner
+	case openrtb2.MarkupVideo:
+		return openrtb_ext.BidTypeVideo
+	default:
+		return openrtb_ext.BidTypeBanner
+	}
+}
+
 func (a *adapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
 	requestJSON, err := json.Marshal(request)
 	if err != nil {
@@ -66,14 +78,15 @@ func (a *adapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.R
 	bidResponse := adapters.NewBidderResponseWithBidsCapacity(len(request.Imp))
 	bidResponse.Currency = response.Cur
 	for _, seatBid := range response.SeatBid {
-		for i, bid := range seatBid.Bid {
+		for i := range seatBid.Bid {
+			bid := &seatBid.Bid[i]
+			bidType := getMediaTypeForBid(bid)
 			b := &adapters.TypedBid{
 				Bid:     &seatBid.Bid[i],
-				BidType: getMediaTypeForBid(bid),
+				BidType: bidType,
 			}
 			bidResponse.Bids = append(bidResponse.Bids, b)
 		}
-		return bidResponse, nil
 	}
 	return bidResponse, nil
 }
