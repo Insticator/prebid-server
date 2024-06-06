@@ -3,6 +3,7 @@ package insticator
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/prebid/openrtb/v20/adcom1"
@@ -13,15 +14,15 @@ import (
 	"github.com/prebid/prebid-server/v2/openrtb_ext"
 )
 
-type InstAdapter struct {
+type InsticatorAdapter struct {
 	endpoint string
 }
 
 type Ext struct {
-	Ttx impTtxExt `json:"ttx"`
+	Insticator impInsticatorExt `json:"insticator"`
 }
 
-type impTtxExt struct {
+type impInsticatorExt struct {
 	Prod   string `json:"prod"`
 	Zoneid string `json:"zoneid,omitempty"`
 }
@@ -32,33 +33,33 @@ type adapter struct {
 }
 
 type reqExt struct {
-	Ttx *reqTtxExt `json:"ttx,omitempty"`
+	Insticator *reqInsticatorExt `json:"insticator,omitempty"`
 }
 
-type reqTtxExt struct {
-	Caller []TtxCaller `json:"caller,omitempty"`
+type reqInsticatorExt struct {
+	Caller []InsticatorCaller `json:"caller,omitempty"`
 }
 
-type TtxCaller struct {
+type InsticatorCaller struct {
 	Name    string `json:"name,omitempty"`
 	Version string `json:"version,omitempty"`
 }
 
 // CALLER Info used to track Prebid Server
 // as one of the hops in the request to exchange
-var CALLER = TtxCaller{"Prebid-Server", "n/a"}
+var CALLER = InsticatorCaller{"Prebid-Server", "n/a"}
 
 type bidExt struct {
-	Ttx bidTtxExt `json:"ttx,omitempty"`
+	Insticator bidInsticatorExt `json:"insticator,omitempty"`
 }
 
-type bidTtxExt struct {
+type bidInsticatorExt struct {
 	MediaType string `json:"mediaType,omitempty"`
 }
 
-// Builder builds a new instance of the Foo adapter for the given bidder with the given config.
+// Builder builds a new insticatorance of the Foo adapter for the given bidder with the given config.
 func Builder(bidderName openrtb_ext.BidderName, config config.Adapter, server config.Server) (adapters.Bidder, error) {
-	bidder := &InstAdapter{
+	bidder := &InsticatorAdapter{
 		endpoint: config.Endpoint,
 	}
 	return bidder, nil
@@ -66,6 +67,16 @@ func Builder(bidderName openrtb_ext.BidderName, config config.Adapter, server co
 
 // getMediaTypeForImp figures out which media type this bid is for
 func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
+	// Log the bid.MType
+	log.Printf("bid.MType: %v", bid.MType)
+	// Log the entire bid structure
+	bidJson, err := json.MarshalIndent(bid, "", "  ")
+	if err != nil {
+		log.Printf("Failed to marshal bid: %v", err)
+	} else {
+		log.Printf("Bid: %s", bidJson)
+	}
+
 	switch bid.MType {
 	case openrtb2.MarkupBanner:
 		return openrtb_ext.BidTypeBanner
@@ -77,14 +88,14 @@ func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
 }
 
 func getBidType(ext bidExt) openrtb_ext.BidType {
-	if ext.Ttx.MediaType == "video" {
+	if ext.Insticator.MediaType == "video" {
 		return openrtb_ext.BidTypeVideo
 	}
 
 	return openrtb_ext.BidTypeBanner
 }
 
-func (a *InstAdapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
+func (a *InsticatorAdapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
 	// requestJSON, err := json.Marshal(request)
 	// if err != nil {
 	// 	return nil, []error{err}
@@ -122,7 +133,7 @@ func (a *InstAdapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *ad
 			// we cannot glean Prod or ZoneID which are required to
 			// group together. However let's not block request creation.
 			if err := json.Unmarshal(impCopy.Ext, &impExt); err == nil {
-				impKey := impExt.Ttx.Prod + impExt.Ttx.Zoneid
+				impKey := impExt.Insticator.Prod + impExt.Insticator.Zoneid
 				groupedImps[impKey] = append(groupedImps[impKey], impCopy)
 			} else {
 				errs = append(errs, err)
@@ -142,7 +153,7 @@ func (a *InstAdapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *ad
 	return adapterRequests, errs
 }
 
-func (a *InstAdapter) makeRequest(request openrtb2.BidRequest, impList []openrtb2.Imp) (*adapters.RequestData, error) {
+func (a *InsticatorAdapter) makeRequest(request openrtb2.BidRequest, impList []openrtb2.Imp) (*adapters.RequestData, error) {
 	request.Imp = impList
 
 	// Last Step
@@ -163,14 +174,14 @@ func (a *InstAdapter) makeRequest(request openrtb2.BidRequest, impList []openrtb
 	}, nil
 }
 
-func (a *InstAdapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.RequestData, responseData *adapters.ResponseData) (*adapters.BidderResponse, []error) {
+func (a *InsticatorAdapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.RequestData, responseData *adapters.ResponseData) (*adapters.BidderResponse, []error) {
 	if responseData.StatusCode == http.StatusNoContent {
 		return nil, nil
 	}
 
 	if responseData.StatusCode == http.StatusBadRequest {
 		err := &errortypes.BadInput{
-			Message: "Unexpected status code: 400. Bad request from publisher. Run with request.debug = 1 for more info.",
+			Message: fmt.Sprintf("Unexpected status code: %d. Run with request.debug = 1 for more info.", responseData.StatusCode),
 		}
 		return nil, []error{err}
 	}
@@ -217,20 +228,20 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, error) {
 		}
 	}
 
-	var ttxExt openrtb_ext.ExtImp33across
-	if err := json.Unmarshal(bidderExt.Bidder, &ttxExt); err != nil {
+	var insticatorExt openrtb_ext.ExtImp33across
+	if err := json.Unmarshal(bidderExt.Bidder, &insticatorExt); err != nil {
 		return openrtb2.Imp{}, &errortypes.BadInput{
 			Message: err.Error(),
 		}
 	}
 
 	var impExt Ext
-	impExt.Ttx.Prod = ttxExt.ProductId
+	impExt.Insticator.Prod = insticatorExt.ProductId
 
-	impExt.Ttx.Zoneid = ttxExt.SiteId
+	impExt.Insticator.Zoneid = insticatorExt.SiteId
 
-	if len(ttxExt.ZoneId) > 0 {
-		impExt.Ttx.Zoneid = ttxExt.ZoneId
+	if len(insticatorExt.ZoneId) > 0 {
+		impExt.Insticator.Zoneid = insticatorExt.ZoneId
 	}
 
 	impExtJSON, err := json.Marshal(impExt)
@@ -244,7 +255,7 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, error) {
 
 	// Validate Video if it exists
 	if imp.Video != nil {
-		videoCopy, err := validateVideoParams(imp.Video, impExt.Ttx.Prod)
+		videoCopy, err := validateVideoParams(imp.Video, impExt.Insticator.Prod)
 
 		imp.Video = videoCopy
 
@@ -275,7 +286,7 @@ func validateVideoParams(video *openrtb2.Video, prod string) (*openrtb2.Video, e
 		videoCopy.Placement = 2
 	}
 
-	if prod == "instream" {
+	if prod == "insticatorream" {
 		videoCopy.Placement = 1
 
 		if videoCopy.StartDelay == nil {
@@ -295,15 +306,15 @@ func makeReqExt(request *openrtb2.BidRequest) ([]byte, error) {
 		}
 	}
 
-	if reqExt.Ttx == nil {
-		reqExt.Ttx = &reqTtxExt{}
+	if reqExt.Insticator == nil {
+		reqExt.Insticator = &reqInsticatorExt{}
 	}
 
-	if reqExt.Ttx.Caller == nil {
-		reqExt.Ttx.Caller = make([]TtxCaller, 0)
+	if reqExt.Insticator.Caller == nil {
+		reqExt.Insticator.Caller = make([]InsticatorCaller, 0)
 	}
 
-	reqExt.Ttx.Caller = append(reqExt.Ttx.Caller, CALLER)
+	reqExt.Insticator.Caller = append(reqExt.Insticator.Caller, CALLER)
 
 	return json.Marshal(reqExt)
 }

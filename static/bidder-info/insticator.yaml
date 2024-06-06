@@ -12,6 +12,5 @@ capabilities:
       - banner
       - video
 userSync:
-  redirect:
-    url: ""
-    userMacro: ""
+  supports:
+    - redirect

@@ -24,7 +24,7 @@
         "uri": "https://ex.ingage.tech/v1/prebidserver",
         "body": {
           "ext": {
-            "ttx": {
+            "insticator": {
               "caller": [
                 {
                   "name": "Prebid-Server",
@@ -41,7 +41,7 @@
                 "format": [{"w": 728, "h": 90}]
               },
               "ext": {
-                "ttx": {
+                "insticator": {
                   "prod": "inview",
                   "zoneid": "fake-site-id"
                 }
@@ -58,7 +58,7 @@
           "id": "test-request-id",
           "seatbid": [
             {
-              "seat": "ttx",
+              "seat": "insticator",
               "bid": [{
                 "id": "8ee514f1-b2b8-4abb-89fd-084437d1e800",
                 "impid": "test-imp-id",
@@ -67,8 +67,9 @@
                 "crid": "crid_10",
                 "h": 90,
                 "w": 728,
+                "mtype": 1,
                 "ext": {
-                  "ttx": {
+                  "insticator": {
                     "mediaType": "banner"
                   }
                 }
@@ -94,8 +95,9 @@
             "crid": "crid_10",
             "w": 728,
             "h": 90,
+            "mtype": 1,
             "ext": {
-              "ttx": {
+              "insticator": {
                 "mediaType": "banner"
               }
             }
