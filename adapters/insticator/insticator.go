@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/golang/glog"
 	"github.com/prebid/openrtb/v20/adcom1"
 	"github.com/prebid/openrtb/v20/openrtb2"
 	"github.com/prebid/prebid-server/v2/adapters"
@@ -23,11 +24,12 @@ type Ext struct {
 }
 
 type impInsticatorExt struct {
-	Prod   string `json:"prod"`
-	Zoneid string `json:"zoneid,omitempty"`
+	Prod     string `json:"prod"`
+	Zoneid   string `json:"zoneid,omitempty"`
+	AdUnitId string `json:"adUnitId,omitempty"`
 }
 
-type adapter struct {
+type InsticatorAdapter struct {
 	endpoint string
 }
 
@@ -58,9 +60,11 @@ type bidInsticatorExt struct {
 
 // Builder builds a new insticatorance of the Foo adapter for the given bidder with the given config.
 func Builder(bidderName openrtb_ext.BidderName, config config.Adapter, server config.Server) (adapters.Bidder, error) {
-	bidder := &adapter{
+	bidder := &InsticatorAdapter{
 		endpoint: config.Endpoint,
 	}
+	glog.Errorf("IN Insticator Builder %v", bidder.endpoint)
+
 	return bidder, nil
 }
 
@@ -94,19 +98,10 @@ func getBidType(ext bidExt) openrtb_ext.BidType {
 	return openrtb_ext.BidTypeBanner
 }
 
-func (a *adapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
-	// requestJSON, err := json.Marshal(request)
-	// if err != nil {
-	// 	return nil, []error{err}
-	// }
+func (a *InsticatorAdapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
 
-	// requestData := &adapters.RequestData{
-	// 	Method: "POST",
-	// 	Uri:    a.endpoint,
-	// 	Body:   requestJSON,
-	// }
-
-	// return []*adapters.RequestData{requestData}, nil
+	glog.Errorf("IN MAKE REQUESTS")
+	log.Printf("IN makeRequests")
 
 	var errs []error
 	var adapterRequests []*adapters.RequestData
@@ -133,6 +128,13 @@ func (a *adapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapte
 			// group together. However let's not block request creation.
 			if err := json.Unmarshal(impCopy.Ext, &impExt); err == nil {
 				impKey := impExt.Insticator.Prod + impExt.Insticator.Zoneid
+				// log impCOpy json
+				impCopyJson, err := json.MarshalIndent(impCopy, "", "  ")
+				if err != nil {
+					log.Printf("Failed to marshal impCopy: %v", err)
+				} else {
+					log.Printf("ImpCopy: %s", impCopyJson)
+				}
 				groupedImps[impKey] = append(groupedImps[impKey], impCopy)
 			} else {
 				errs = append(errs, err)
@@ -152,7 +154,7 @@ func (a *adapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapte
 	return adapterRequests, errs
 }
 
-func (a *adapter) makeRequest(request openrtb2.BidRequest, impList []openrtb2.Imp) (*adapters.RequestData, error) {
+func (a *InsticatorAdapter) makeRequest(request openrtb2.BidRequest, impList []openrtb2.Imp) (*adapters.RequestData, error) {
 	request.Imp = impList
 
 	// Last Step
@@ -160,10 +162,13 @@ func (a *adapter) makeRequest(request openrtb2.BidRequest, impList []openrtb2.Im
 	if err != nil {
 		return nil, err
 	}
+	// log reqJson
+	log.Printf("reqJSON Before makerequest: %s", reqJSON)
 
 	headers := http.Header{}
 	headers.Add("Content-Type", "application/json;charset=utf-8")
 
+	glog.Errorf("MAKE REQUEST: %v", a.endpoint)
 	return &adapters.RequestData{
 		Method:  "POST",
 		Uri:     a.endpoint,
@@ -173,7 +178,9 @@ func (a *adapter) makeRequest(request openrtb2.BidRequest, impList []openrtb2.Im
 	}, nil
 }
 
-func (a *adapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.RequestData, responseData *adapters.ResponseData) (*adapters.BidderResponse, []error) {
+func (a *InsticatorAdapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.RequestData, responseData *adapters.ResponseData) (*adapters.BidderResponse, []error) {
+	glog.Errorf("MakeBids MakeBids")
+
 	if responseData.StatusCode == http.StatusNoContent {
 		return nil, nil
 	}
@@ -227,17 +234,26 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, error) {
 		}
 	}
 
-	var insticatorExt openrtb_ext.ExtImp33across
+	var insticatorExt openrtb_ext.ExtImpInsticator
 	if err := json.Unmarshal(bidderExt.Bidder, &insticatorExt); err != nil {
 		return openrtb2.Imp{}, &errortypes.BadInput{
 			Message: err.Error(),
 		}
 	}
 
-	var impExt Ext
-	impExt.Insticator.Prod = insticatorExt.ProductId
+	// log insticatorExt
+	insticatorExtJson, err := json.MarshalIndent(insticatorExt, "", "  ")
+	if err != nil {
+		log.Printf("Failed to marshal insticatorExt: %v", err)
+	} else {
+		log.Printf("InsticatorExt: %s", insticatorExtJson)
+	}
 
-	impExt.Insticator.Zoneid = insticatorExt.SiteId
+	var impExt Ext
+	impExt.Insticator.AdUnitId = insticatorExt.AdUnitId
+
+	// log AdUnitId
+	log.Printf("AdUnitId: %s", insticatorExt.AdUnitId)
 
 	if len(insticatorExt.ZoneId) > 0 {
 		impExt.Insticator.Zoneid = insticatorExt.ZoneId
