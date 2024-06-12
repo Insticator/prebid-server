@@ -28,7 +28,7 @@ type impInsticatorExt struct {
 	AdUnitId string `json:"adUnitId,omitempty"`
 }
 
-type InsticatorAdapter struct {
+type adapter struct {
 	endpoint string
 }
 
@@ -59,7 +59,7 @@ type bidInsticatorExt struct {
 
 // Builder builds a new insticatorance of the Foo adapter for the given bidder with the given config.
 func Builder(bidderName openrtb_ext.BidderName, config config.Adapter, server config.Server) (adapters.Bidder, error) {
-	bidder := &InsticatorAdapter{
+	bidder := &adapter{
 		endpoint: config.Endpoint,
 	}
 	return bidder, nil
@@ -95,7 +95,7 @@ func getBidType(ext bidExt) openrtb_ext.BidType {
 	return openrtb_ext.BidTypeBanner
 }
 
-func (a *InsticatorAdapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
+func (a *adapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
 
 	log.Printf("IN makeRequests")
 
@@ -150,7 +150,7 @@ func (a *InsticatorAdapter) MakeRequests(request *openrtb2.BidRequest, requestIn
 	return adapterRequests, errs
 }
 
-func (a *InsticatorAdapter) makeRequest(request openrtb2.BidRequest, impList []openrtb2.Imp) (*adapters.RequestData, error) {
+func (a *adapter) makeRequest(request openrtb2.BidRequest, impList []openrtb2.Imp) (*adapters.RequestData, error) {
 	request.Imp = impList
 
 	// Last Step
@@ -174,7 +174,7 @@ func (a *InsticatorAdapter) makeRequest(request openrtb2.BidRequest, impList []o
 	}, nil
 }
 
-func (a *InsticatorAdapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.RequestData, responseData *adapters.ResponseData) (*adapters.BidderResponse, []error) {
+func (a *adapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.RequestData, responseData *adapters.ResponseData) (*adapters.BidderResponse, []error) {
 	if responseData.StatusCode == http.StatusNoContent {
 		return nil, nil
 	}
