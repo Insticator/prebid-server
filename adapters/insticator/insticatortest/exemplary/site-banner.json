@@ -9,7 +9,7 @@
         },
         "ext": {
           "bidder": {
-            "siteId": "fake-site-id",
+            "adUnitId": "fake-site-id",
             "productId": "inview"
           }
         }
@@ -43,7 +43,7 @@
               "ext": {
                 "insticator": {
                   "prod": "inview",
-                  "zoneid": "fake-site-id"
+                  "adUnitId": "fake-site-id"
                 }
               }
             }

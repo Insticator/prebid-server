@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/golang/glog"
 	"github.com/prebid/openrtb/v20/adcom1"
 	"github.com/prebid/openrtb/v20/openrtb2"
 	"github.com/prebid/prebid-server/v2/adapters"
@@ -63,8 +62,6 @@ func Builder(bidderName openrtb_ext.BidderName, config config.Adapter, server co
 	bidder := &InsticatorAdapter{
 		endpoint: config.Endpoint,
 	}
-	glog.Errorf("IN Insticator Builder %v", bidder.endpoint)
-
 	return bidder, nil
 }
 
@@ -100,7 +97,6 @@ func getBidType(ext bidExt) openrtb_ext.BidType {
 
 func (a *InsticatorAdapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
 
-	glog.Errorf("IN MAKE REQUESTS")
 	log.Printf("IN makeRequests")
 
 	var errs []error
@@ -168,7 +164,7 @@ func (a *InsticatorAdapter) makeRequest(request openrtb2.BidRequest, impList []o
 	headers := http.Header{}
 	headers.Add("Content-Type", "application/json;charset=utf-8")
 
-	glog.Errorf("MAKE REQUEST: %v", a.endpoint)
+	log.Printf("MAKE REQUEST: %v", a.endpoint)
 	return &adapters.RequestData{
 		Method:  "POST",
 		Uri:     a.endpoint,
@@ -179,8 +175,6 @@ func (a *InsticatorAdapter) makeRequest(request openrtb2.BidRequest, impList []o
 }
 
 func (a *InsticatorAdapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.RequestData, responseData *adapters.ResponseData) (*adapters.BidderResponse, []error) {
-	glog.Errorf("MakeBids MakeBids")
-
 	if responseData.StatusCode == http.StatusNoContent {
 		return nil, nil
 	}
@@ -251,6 +245,7 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, error) {
 
 	var impExt Ext
 	impExt.Insticator.AdUnitId = insticatorExt.AdUnitId
+	impExt.Insticator.Prod = insticatorExt.ProductId
 
 	// log AdUnitId
 	log.Printf("AdUnitId: %s", insticatorExt.AdUnitId)

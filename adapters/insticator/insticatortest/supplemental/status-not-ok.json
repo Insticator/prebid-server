@@ -42,8 +42,7 @@
                 },
                 "ext": {
                   "insticator": {
-                    "prod": "inview",
-                    "zoneid": "fake-invalid-site-id"
+                    "prod": "inview"
                   }
                 }
               }
