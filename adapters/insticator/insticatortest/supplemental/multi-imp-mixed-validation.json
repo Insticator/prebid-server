@@ -9,8 +9,7 @@
           },
           "ext": {
             "bidder": {
-              "adUnitId": "fake-site-id",
-              "productId": "inview"
+              "adUnitId": "fake-site-id"
             }
           }
         },
@@ -18,8 +17,7 @@
           "id": "test-imp-id2",
           "ext": {
             "bidder": {
-              "adUnitId": "fake-site-id",
-              "productId": "inview"
+              "adUnitId": "fake-site-id"
             }
           }
         }
@@ -51,7 +49,6 @@
                 },
                 "ext": {
                   "insticator": {
-                    "prod": "inview",
                     "adUnitId": "fake-site-id"
                   }
                 }

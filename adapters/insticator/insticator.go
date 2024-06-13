@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
+	"reflect"
+	"strconv"
+	"strings"
 
-	"github.com/prebid/openrtb/v20/adcom1"
 	"github.com/prebid/openrtb/v20/openrtb2"
 	"github.com/prebid/prebid-server/v2/adapters"
 	"github.com/prebid/prebid-server/v2/config"
@@ -23,8 +26,6 @@ type Ext struct {
 }
 
 type impInsticatorExt struct {
-	Prod     string `json:"prod"`
-	Zoneid   string `json:"zoneid,omitempty"`
 	AdUnitId string `json:"adUnitId,omitempty"`
 }
 
@@ -55,6 +56,122 @@ type bidExt struct {
 
 type bidInsticatorExt struct {
 	MediaType string `json:"mediaType,omitempty"`
+}
+
+// Placeholder for the actual openrtb2.Video struct
+type Video struct {
+	W              *int     `json:"w"`
+	H              *int     `json:"h"`
+	MIMEs          []string `json:"mimes"`
+	Placement      int      `json:"placement"`
+	Plcmt          int      `json:"plcmt"`
+	MinDuration    *int     `json:"minduration"`
+	MaxDuration    *int     `json:"maxduration"`
+	Protocols      []int    `json:"protocols"`
+	StartDelay     *int     `json:"startdelay"`
+	Linearity      *int     `json:"linearity"`
+	Skip           *int     `json:"skip"`
+	SkipMin        *int     `json:"skipmin"`
+	SkipAfter      *int     `json:"skipafter"`
+	Sequence       *int     `json:"sequence"`
+	Battr          []int    `json:"battr"`
+	MaxExtended    *int     `json:"maxextended"`
+	MinBitrate     *int     `json:"minbitrate"`
+	MaxBitrate     *int     `json:"maxbitrate"`
+	PlaybackMethod []int    `json:"playbackmethod"`
+	PlaybackEnd    *int     `json:"playbackend"`
+	Delivery       []int    `json:"delivery"`
+	Pos            *int     `json:"pos"`
+	API            []int    `json:"api"`
+}
+
+type BadInput struct {
+	Message string
+}
+
+func (e *BadInput) Error() string {
+	return e.Message
+}
+
+// Validation functions
+func isInteger(value interface{}) bool {
+	switch v := value.(type) {
+	case int:
+		return true
+	case float64:
+		return v == float64(int(v))
+	case string:
+		_, err := strconv.Atoi(v)
+		return err == nil
+	default:
+		return false
+	}
+}
+
+func isArrayOfNums(value interface{}) bool {
+	switch v := value.(type) {
+	case []int:
+		return true
+	case []float64:
+		for _, num := range v {
+			if num != float64(int(num)) {
+				return false
+			}
+		}
+		return true
+	case []string:
+		for _, str := range v {
+			if _, err := strconv.Atoi(str); err != nil {
+				return false
+			}
+		}
+		return true
+	default:
+		return false
+	}
+}
+
+// Define valid values
+var validLinearity = map[int]bool{1: true}
+var validSkip = map[int]bool{0: true, 1: true}
+var validPlaybackEnd = map[int]bool{1: true, 2: true, 3: true}
+var validPos = map[int]bool{0: true, 1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true}
+
+// Map parameters to validation functions
+var optionalVideoParams = map[string]func(interface{}) bool{
+	"minduration":    isInteger,
+	"maxduration":    isInteger,
+	"protocols":      isArrayOfNums,
+	"startdelay":     isInteger,
+	"linearity":      func(value interface{}) bool { return isInteger(value) && validLinearity[toInt(value)] },
+	"skip":           func(value interface{}) bool { return isInteger(value) && validSkip[toInt(value)] },
+	"skipmin":        isInteger,
+	"skipafter":      isInteger,
+	"sequence":       isInteger,
+	"battr":          isArrayOfNums,
+	"maxextended":    isInteger,
+	"minbitrate":     isInteger,
+	"maxbitrate":     isInteger,
+	"playbackmethod": isArrayOfNums,
+	"playbackend":    func(value interface{}) bool { return isInteger(value) && validPlaybackEnd[toInt(value)] },
+	"delivery":       isArrayOfNums,
+	"pos":            func(value interface{}) bool { return isInteger(value) && validPos[toInt(value)] },
+	"api":            isArrayOfNums,
+}
+
+// Helper function to convert interface to int
+func toInt(value interface{}) int {
+	switch v := value.(type) {
+	case int:
+		return v
+	case float64:
+		return int(v)
+	case string:
+		if i, err := strconv.Atoi(v); err == nil {
+			return i
+		}
+	}
+	return 0
 }
 
 // Builder builds a new insticatorance of the Foo adapter for the given bidder with the given config.
@@ -112,25 +229,24 @@ func (a *adapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapte
 	}
 	request.Ext = reqExt
 
-	// We only support SRA for requests containing same prod and
-	// zoneID, therefore group all imps accordingly and create a http
-	// request for each such group
 	for i := 0; i < len(request.Imp); i++ {
 		if impCopy, err := makeImps(request.Imp[i]); err == nil {
 			var impExt Ext
 
-			// Skip over imps whose extensions cannot be read since
-			// we cannot glean Prod or ZoneID which are required to
-			// group together. However let's not block request creation.
+			// group together the imp hacing insticator adUnitId. However let's not block request creation.
 			if err := json.Unmarshal(impCopy.Ext, &impExt); err == nil {
-				impKey := impExt.Insticator.Prod + impExt.Insticator.Zoneid
-				// log impCOpy json
-				impCopyJson, err := json.MarshalIndent(impCopy, "", "  ")
-				if err != nil {
-					log.Printf("Failed to marshal impCopy: %v", err)
+				impKey := impExt.Insticator.AdUnitId
+
+				resolvedBidFloor, errFloor := resolveBidFloor(impCopy.BidFloor, impCopy.BidFloorCur, requestInfo)
+				if errFloor != nil {
+					errs = append(errs, errFloor)
 				} else {
-					log.Printf("ImpCopy: %s", impCopyJson)
+					if resolvedBidFloor > 0 {
+						impCopy.BidFloor = resolvedBidFloor
+						impCopy.BidFloorCur = "USD"
+					}
 				}
+
 				groupedImps[impKey] = append(groupedImps[impKey], impCopy)
 			} else {
 				errs = append(errs, err)
@@ -245,14 +361,9 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, error) {
 
 	var impExt Ext
 	impExt.Insticator.AdUnitId = insticatorExt.AdUnitId
-	impExt.Insticator.Prod = insticatorExt.ProductId
 
 	// log AdUnitId
 	log.Printf("AdUnitId: %s", insticatorExt.AdUnitId)
-
-	if len(insticatorExt.ZoneId) > 0 {
-		impExt.Insticator.Zoneid = insticatorExt.ZoneId
-	}
 
 	impExtJSON, err := json.Marshal(impExt)
 	if err != nil {
@@ -265,7 +376,7 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, error) {
 
 	// Validate Video if it exists
 	if imp.Video != nil {
-		videoCopy, err := validateVideoParams(imp.Video, impExt.Insticator.Prod)
+		videoCopy, err := validateVideoParams(imp.Video)
 
 		imp.Video = videoCopy
 
@@ -279,16 +390,14 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, error) {
 	return imp, nil
 }
 
-func validateVideoParams(video *openrtb2.Video, prod string) (*openrtb2.Video, error) {
+func validateVideoParams(video *openrtb2.Video) (*openrtb2.Video, error) {
 	videoCopy := *video
 	if (videoCopy.W == nil || *videoCopy.W == 0) ||
 		(videoCopy.H == nil || *videoCopy.H == 0) ||
-		videoCopy.Protocols == nil ||
-		videoCopy.MIMEs == nil ||
-		videoCopy.PlaybackMethod == nil {
+		videoCopy.MIMEs == nil {
 
 		return nil, &errortypes.BadInput{
-			Message: "One or more invalid or missing video field(s) w, h, protocols, mimes, playbackmethod",
+			Message: "One or more invalid or missing video field(s) w, h, mimes",
 		}
 	}
 
@@ -296,15 +405,17 @@ func validateVideoParams(video *openrtb2.Video, prod string) (*openrtb2.Video, e
 		videoCopy.Placement = 2
 	}
 
-	if prod == "insticatorream" {
-		videoCopy.Placement = 1
-
-		if videoCopy.StartDelay == nil {
-			videoCopy.StartDelay = adcom1.StartDelay.Ptr(0)
-		}
+	if videoCopy.Plcmt == 0 {
+		videoCopy.Plcmt = 1
 	}
 
-	return &videoCopy, nil
+	// Validate optional parameters and remove invalid ones
+	cleanedVideo, err := validateOptionalVideoParams(&videoCopy)
+	if err != nil {
+		return nil, err
+	}
+
+	return cleanedVideo, nil
 }
 
 func makeReqExt(request *openrtb2.BidRequest) ([]byte, error) {
@@ -327,4 +438,74 @@ func makeReqExt(request *openrtb2.BidRequest) ([]byte, error) {
 	reqExt.Insticator.Caller = append(reqExt.Insticator.Caller, CALLER)
 
 	return json.Marshal(reqExt)
+}
+
+func resolveBidFloor(bidFloor float64, bidFloorCur string, reqInfo *adapters.ExtraRequestInfo) (float64, error) {
+	if bidFloor > 0 && bidFloorCur != "" && strings.ToUpper(bidFloorCur) != "USD" {
+		floor, err := reqInfo.ConvertCurrency(bidFloor, bidFloorCur, "USD")
+		return roundTo4Decimals(floor), err
+	}
+
+	return bidFloor, nil
+}
+
+// roundTo4Decimals function
+func roundTo4Decimals(amount float64) float64 {
+	return math.Round(amount*10000) / 10000
+}
+
+func validateOptionalVideoParams(video *openrtb2.Video) (*openrtb2.Video, error) {
+	v := reflect.ValueOf(video).Elem()
+	t := v.Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		fieldValue := v.Field(i)
+
+		// Convert the field name to camelCase for matching in optionalVideoParams map
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "" {
+			jsonTag = toCamelCase(field.Name)
+		}
+
+		// Skip fields that are not in optionalVideoParams
+		validator, exists := optionalVideoParams[jsonTag]
+		if !exists {
+			continue
+		}
+
+		// Check if the field value is zero/nil and skip if true
+		if isZeroOrNil(fieldValue) {
+			continue
+		}
+
+		// Validate the field value
+		if !validator(fieldValue.Interface()) {
+			// If invalid, set the field to zero value
+			fieldValue.Set(reflect.Zero(fieldValue.Type()))
+		}
+	}
+	return video, nil
+}
+
+// Helper function to convert field name to camelCase
+func toCamelCase(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToLower(string(s[0])) + s[1:]
+}
+
+// Helper function to check if a value is zero or nil
+func isZeroOrNil(value reflect.Value) bool {
+	switch value.Kind() {
+	case reflect.Ptr, reflect.Interface:
+		return value.IsNil()
+	case reflect.Slice, reflect.Array:
+		return value.Len() == 0
+	case reflect.Map:
+		return len(value.MapKeys()) == 0
+	default:
+		return value.IsZero()
+	}
 }

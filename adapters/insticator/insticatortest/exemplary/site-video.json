@@ -15,8 +15,7 @@
         },
         "ext": {
           "bidder": {
-            "adUnitId": "fake-site-id",
-            "productId": "instream"
+            "adUnitId": "fake-site-id"
           }
         }
       }
@@ -54,7 +53,6 @@
               },
               "ext": {
                 "insticator": {
-                  "prod": "instream",
                   "adUnitId": "fake-site-id"
                 }
               }
