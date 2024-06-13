@@ -401,14 +401,6 @@ func validateVideoParams(video *openrtb2.Video) (*openrtb2.Video, error) {
 		}
 	}
 
-	if videoCopy.Placement == 0 {
-		videoCopy.Placement = 2
-	}
-
-	if videoCopy.Plcmt == 0 {
-		videoCopy.Plcmt = 1
-	}
-
 	// Validate optional parameters and remove invalid ones
 	cleanedVideo, err := validateOptionalVideoParams(&videoCopy)
 	if err != nil {
