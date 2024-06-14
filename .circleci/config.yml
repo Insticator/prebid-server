@@ -1,0 +1,35 @@
+version: 2.1
+orbs:
+  aws-ecr: circleci/aws-ecr@9.1.0
+  aws-cli: circleci/aws-cli@4.0
+
+workflows:
+  publish-staging:
+    when:
+      and:
+        - equal: [ stage, << pipeline.git.branch >> ]
+    jobs:
+      - aws-ecr/build_and_push_image:
+          auth:
+            - aws-cli/setup
+          account_id: ${AWS_ACCOUNT_ID}
+          create_repo: true
+          dockerfile: Dockerfile
+          path: .
+          region: ${AWS_DEFAULT_REGION}
+          repo: insticator-prebid-server-${CIRCLE_BRANCH}
+
+  publish-prod:
+    when:
+      and:
+        - equal: [ master, << pipeline.git.branch >> ]
+    jobs:
+      - aws-ecr/build_and_push_image:
+          auth:
+            - aws-cli/setup
+          account_id: ${AWS_ACCOUNT_ID}
+          create_repo: true
+          dockerfile: Dockerfile
+          path: .
+          region: ${AWS_DEFAULT_REGION}
+          repo: insticator-prebid-server-${CIRCLE_BRANCH}
