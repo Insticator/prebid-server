@@ -254,7 +254,7 @@ type GDPR struct {
 
 func (cfg *GDPR) validate(v *viper.Viper, errs []error) []error {
 	if !v.IsSet("gdpr.default_value") {
-		// errs = append(errs, fmt.Errorf("gdpr.default_value is required and must be specified"))
+		errs = append(errs, fmt.Errorf("gdpr.default_value is required and must be specified"))
 	} else if cfg.DefaultValue != "0" && cfg.DefaultValue != "1" {
 		errs = append(errs, fmt.Errorf("gdpr.default_value must be 0 or 1"))
 	}

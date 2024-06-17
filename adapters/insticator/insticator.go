@@ -184,16 +184,6 @@ func Builder(bidderName openrtb_ext.BidderName, config config.Adapter, server co
 
 // getMediaTypeForImp figures out which media type this bid is for
 func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
-	// Log the bid.MType
-	log.Printf("bid.MType: %v", bid.MType)
-	// Log the entire bid structure
-	bidJson, err := json.MarshalIndent(bid, "", "  ")
-	if err != nil {
-		log.Printf("Failed to marshal bid: %v", err)
-	} else {
-		log.Printf("Bid: %s", bidJson)
-	}
-
 	switch bid.MType {
 	case openrtb2.MarkupBanner:
 		return openrtb_ext.BidTypeBanner
@@ -280,7 +270,6 @@ func (a *adapter) makeRequest(request openrtb2.BidRequest, impList []openrtb2.Im
 	headers := http.Header{}
 	headers.Add("Content-Type", "application/json;charset=utf-8")
 
-	log.Printf("MAKE REQUEST: %v", a.endpoint)
 	return &adapters.RequestData{
 		Method:  "POST",
 		Uri:     a.endpoint,
@@ -351,19 +340,8 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, error) {
 		}
 	}
 
-	// log insticatorExt
-	insticatorExtJson, err := json.MarshalIndent(insticatorExt, "", "  ")
-	if err != nil {
-		log.Printf("Failed to marshal insticatorExt: %v", err)
-	} else {
-		log.Printf("InsticatorExt: %s", insticatorExtJson)
-	}
-
 	var impExt Ext
 	impExt.Insticator.AdUnitId = insticatorExt.AdUnitId
-
-	// log AdUnitId
-	log.Printf("AdUnitId: %s", insticatorExt.AdUnitId)
 
 	impExtJSON, err := json.Marshal(impExt)
 	if err != nil {

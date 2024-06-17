@@ -1227,10 +1227,10 @@ func TestInvalidGDPRDefaultValue(t *testing.T) {
 }
 
 func TestMissingGDPRDefaultValue(t *testing.T) {
-	// v := viper.New()
+	v := viper.New()
 
-	// cfg, _ := newDefaultConfig(t)
-	// assertOneError(t, cfg.validate(v), "gdpr.default_value is required and must be specified")
+	cfg, _ := newDefaultConfig(t)
+	assertOneError(t, cfg.validate(v), "gdpr.default_value is required and must be specified")
 }
 
 func TestInvalidEnforceAlgo(t *testing.T) {
