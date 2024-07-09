@@ -9,7 +9,8 @@
           },
           "ext": {
             "bidder": {
-              "adUnitId": "fake-invalid-site-id"
+              "adUnitId": "fake-invalid-site-id",
+              "publisherId": "test-publisher-id"
             }
           }
         }
@@ -45,6 +46,8 @@
                 },
                 "ext": {
                   "insticator": {
+                    "adUnitId": "fake-invalid-site-id",
+                    "publisherId": "test-publisher-id"
                   }
                 }
               }

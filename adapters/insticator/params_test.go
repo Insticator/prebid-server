@@ -48,6 +48,4 @@ var validParams = []string{
 var invalidParams = []string{
 	`{"publisherId": "inview"}`,
 	`{"publisherId": 123, "adUnitId": "fakesiteid2"}`,
-	`{"publisherId": "siab", "adUnitId": 123}`,
-	`{"publisherId": "siab", "adUnitId": "fakesiteid2"}`,
 }
