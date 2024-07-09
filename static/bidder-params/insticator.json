@@ -6,18 +6,14 @@
   
     "type": "object",
     "properties": {
-      "productId": {
-        "type": "string",
-        "description": "Product type"
-      },
       "adUnitId": {
         "type": "string",
         "description": "Ad Unit Id"
       },
-      "zoneId": {
+      "publisherId": {
         "type": "string",
-        "description": "Zone Id"
+        "description": "Publisher Id"
       }
     },
-    "required": ["adUnitId"]
+    "required": ["adUnitId", "publisherId"]
   }

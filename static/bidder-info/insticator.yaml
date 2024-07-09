@@ -1,4 +1,6 @@
-endpoint: "https://ex.ingage.tech/v1/prebidserver"
+endpoint: "http://ex.hunchme.com/v1/prebidserver?debug=true"
+geoscope:
+  - global
 maintainer:
   email: "predid@insticator.com"
 gvlVendorID: 910
@@ -12,5 +14,6 @@ capabilities:
       - banner
       - video
 userSync:
-  supports:
-    - redirect
+  iframe:
+    url: "https://usync.hunchme.com?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&redirect={{.RedirectURL}}"
+    userMacro: ""

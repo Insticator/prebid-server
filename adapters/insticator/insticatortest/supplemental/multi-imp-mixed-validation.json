@@ -9,7 +9,8 @@
           },
           "ext": {
             "bidder": {
-              "adUnitId": "fake-site-id"
+              "adUnitId": "fake-site-id",
+              "publisherId": "test-publisher-id"
             }
           }
         },
@@ -17,12 +18,17 @@
           "id": "test-imp-id2",
           "ext": {
             "bidder": {
-              "adUnitId": "fake-site-id"
+              "adUnitId": "fake-site-id",
+              "publisherId": "test-publisher-id"
             }
           }
         }
       ],
-      "site": {}
+      "site": {
+        "publisher": {
+          "id": "test-publisher-id"
+        }
+      }
     },
   
     "httpCalls": [
@@ -49,12 +55,17 @@
                 },
                 "ext": {
                   "insticator": {
-                    "adUnitId": "fake-site-id"
+                    "adUnitId": "fake-site-id",
+                    "publisherId": "test-publisher-id"
                   }
                 }
               }
             ],
-            "site": {}
+            "site": {
+              "publisher": {
+                "id": "test-publisher-id"
+              }
+            }
           },
           "impIDs":["test-imp-id1"]
         },

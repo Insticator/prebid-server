@@ -10,13 +10,17 @@
           },
           "ext": {
             "bidder": {
-              "siteId": "fake-site-id",
-              "productId": "siab"
+              "adUnitId": "fake-site-id",
+              "publisherId": "test-publisher-id"
             }
           }
         }
       ],
-      "site": {}
+      "site": {
+        "publisher": {
+          "id": "test-publisher-id"
+        }
+      }
     },
     
     "expectedMakeRequestsErrors": [

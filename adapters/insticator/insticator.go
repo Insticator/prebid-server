@@ -25,8 +25,15 @@ type Ext struct {
 	Insticator impInsticatorExt `json:"insticator"`
 }
 
+type insticatorUserExt struct {
+	Eids    []openrtb2.EID  `json:"eids,omitempty"`
+	Data    json.RawMessage `json:"data,omitempty"`
+	Consent string          `json:"consent,omitempty"`
+}
+
 type impInsticatorExt struct {
-	AdUnitId string `json:"adUnitId,omitempty"`
+	AdUnitId    string `json:"adUnitId,omitempty"`
+	PublisherId string `json:"publisherId,omitempty"`
 }
 
 type adapter struct {
@@ -222,6 +229,10 @@ func (a *adapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapte
 	for i := 0; i < len(request.Imp); i++ {
 		if impCopy, err := makeImps(request.Imp[i]); err == nil {
 			var impExt Ext
+			// Populate site.publisher.id from imp extension only once
+			if request.Site != nil && i == 0 {
+				populateSitePublisherId(&impCopy, request.Site)
+			}
 
 			// group together the imp hacing insticator adUnitId. However let's not block request creation.
 			if err := json.Unmarshal(impCopy.Ext, &impExt); err == nil {
@@ -265,7 +276,7 @@ func (a *adapter) makeRequest(request openrtb2.BidRequest, impList []openrtb2.Im
 		return nil, err
 	}
 	// log reqJson
-	log.Printf("reqJSON Before makerequest: %s", reqJSON)
+	// log.Printf("reqJSON Before makerequest: %s", reqJSON)
 
 	headers := http.Header{}
 	headers.Add("Content-Type", "application/json;charset=utf-8")
@@ -342,6 +353,7 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, error) {
 
 	var impExt Ext
 	impExt.Insticator.AdUnitId = insticatorExt.AdUnitId
+	impExt.Insticator.PublisherId = insticatorExt.PublisherId
 
 	impExtJSON, err := json.Marshal(impExt)
 	if err != nil {
@@ -477,5 +489,21 @@ func isZeroOrNil(value reflect.Value) bool {
 		return len(value.MapKeys()) == 0
 	default:
 		return value.IsZero()
+	}
+}
+
+// populate publisherId to site object from imp extension
+func populateSitePublisherId(imp *openrtb2.Imp, site *openrtb2.Site) {
+	var ext Ext
+
+	if site.Publisher == nil {
+		site.Publisher = &openrtb2.Publisher{}
+		log.Printf("Created Publisher object in Site")
+	}
+
+	if err := json.Unmarshal(imp.Ext, &ext); err == nil {
+		site.Publisher.ID = ext.Insticator.PublisherId
+	} else {
+		log.Printf("Error unmarshalling imp extension: %v", err)
 	}
 }

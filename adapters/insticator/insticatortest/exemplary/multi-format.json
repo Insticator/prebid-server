@@ -16,12 +16,17 @@
           },
           "ext": {
             "bidder": {
-              "adUnitId": "inview"
+              "adUnitId": "inview",
+              "publisherId": "test-publisher-id"
             }
           }
         }
       ],
-      "site": {}
+      "site": {
+        "publisher": {
+          "id": "test-publisher-id"
+        }
+      }
     },
   
     "httpCalls": [
@@ -55,12 +60,17 @@
                 },
                 "ext": {
                   "insticator": {
-                    "adUnitId": "inview"
+                    "adUnitId": "inview",
+                    "publisherId": "test-publisher-id"
                   }
                 }
               }
             ],
-            "site": {}
+            "site": {
+              "publisher": {
+                "id": "test-publisher-id"
+              }
+            }
           },
           "impIDs":["test-imp-id"]
         },
