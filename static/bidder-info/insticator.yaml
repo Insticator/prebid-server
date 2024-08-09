@@ -1,4 +1,4 @@
-endpoint: "https://ex.ingage.tech/v1/prebidserver"
+endpoint: "http://localhost:7000/v1/prebidserver"
 maintainer:
   email: "predid@insticator.com"
 gvlVendorID: 910
