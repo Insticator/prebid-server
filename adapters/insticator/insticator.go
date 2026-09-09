@@ -1,6 +1,7 @@
 package insticator
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -17,6 +18,16 @@ import (
 
 type ext struct {
 	Insticator impInsticatorExt `json:"insticator"`
+	GPID       string           `json:"gpid,omitempty"`
+	Data       json.RawMessage  `json:"data,omitempty"`
+	TID        string           `json:"tid,omitempty"`
+}
+
+type impExt struct {
+	adapters.ExtImpBidder
+	GPID string          `json:"gpid,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
+	TID  string          `json:"tid,omitempty"`
 }
 
 type impInsticatorExt struct {
@@ -108,15 +119,32 @@ func (a *adapter) buildEndpointURL(publisherId string, request *openrtb2.BidRequ
 }
 
 // getMediaTypeForBid figures out which media type this bid is for
-func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
+func getMediaTypeForBid(bid *openrtb2.Bid, imps []openrtb2.Imp) openrtb_ext.BidType {
 	switch bid.MType {
 	case openrtb2.MarkupBanner:
 		return openrtb_ext.BidTypeBanner
 	case openrtb2.MarkupVideo:
 		return openrtb_ext.BidTypeVideo
-	default:
-		return openrtb_ext.BidTypeBanner
+	case openrtb2.MarkupAudio:
+		return openrtb_ext.BidTypeAudio
 	}
+
+	for i := range imps {
+		if imps[i].ID != bid.ImpID {
+			continue
+		}
+		if imps[i].Banner == nil {
+			if imps[i].Audio != nil && imps[i].Video == nil {
+				return openrtb_ext.BidTypeAudio
+			}
+			if imps[i].Video != nil && imps[i].Audio == nil {
+				return openrtb_ext.BidTypeVideo
+			}
+		}
+		break
+	}
+
+	return openrtb_ext.BidTypeBanner
 }
 
 func (a *adapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
@@ -236,7 +264,7 @@ func (a *adapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.R
 	for _, seatBid := range response.SeatBid {
 		for i := range seatBid.Bid {
 			bid := &seatBid.Bid[i]
-			bidType := getMediaTypeForBid(bid)
+			bidType := getMediaTypeForBid(bid, request.Imp)
 			b := &adapters.TypedBid{
 				Bid:      &seatBid.Bid[i],
 				BidType:  bidType,
@@ -286,7 +314,7 @@ func getBidVideo(bid *openrtb2.Bid, bidType openrtb_ext.BidType) *openrtb_ext.Ex
 }
 
 func makeImps(imp openrtb2.Imp) (openrtb2.Imp, string, string, error) {
-	var bidderExt adapters.ExtImpBidder
+	var bidderExt impExt
 	if err := jsonutil.Unmarshal(imp.Ext, &bidderExt); err != nil {
 		return openrtb2.Imp{}, "", "", &errortypes.BadInput{
 			Message: err.Error(),
@@ -301,14 +329,17 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, string, string, error) {
 	}
 
 	// Directly construct the impExt
-	impExt := ext{
+	outgoingExt := ext{
 		Insticator: impInsticatorExt{
 			AdUnitId:    insticatorExt.AdUnitId,
 			PublisherId: insticatorExt.PublisherId,
 		},
+		GPID: bidderExt.GPID,
+		Data: bidderExt.Data,
+		TID:  bidderExt.TID,
 	}
 
-	impExtJSON, err := jsonutil.Marshal(impExt)
+	impExtJSON, err := jsonutil.Marshal(outgoingExt)
 	if err != nil {
 		return openrtb2.Imp{}, "", "", &errortypes.BadInput{
 			Message: err.Error(),
