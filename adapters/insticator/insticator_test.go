@@ -30,6 +30,7 @@ func TestGetMediaTypeForBid(t *testing.T) {
 		name         string
 		mType        openrtb2.MarkupType
 		bidExt       json.RawMessage
+		imps         []openrtb2.Imp
 		expectedType openrtb_ext.BidType
 	}{
 		{
@@ -82,12 +83,36 @@ func TestGetMediaTypeForBid(t *testing.T) {
 			bidExt:       json.RawMessage(`{`),
 			expectedType: openrtb_ext.BidTypeBanner,
 		},
+		{
+			name:         "absent markup infers audio from an audio-only impression",
+			mType:        0,
+			imps:         []openrtb2.Imp{{ID: "imp-1", Audio: &openrtb2.Audio{MIMEs: []string{"audio/mp4"}}}},
+			expectedType: openrtb_ext.BidTypeAudio,
+		},
+		{
+			name:         "absent markup infers video from a video-only impression",
+			mType:        0,
+			imps:         []openrtb2.Imp{{ID: "imp-1", Video: &openrtb2.Video{MIMEs: []string{"video/mp4"}}}},
+			expectedType: openrtb_ext.BidTypeVideo,
+		},
+		{
+			name:         "absent markup stays banner when the impression is multi format",
+			mType:        0,
+			imps:         []openrtb2.Imp{{ID: "imp-1", Banner: &openrtb2.Banner{}, Audio: &openrtb2.Audio{MIMEs: []string{"audio/mp4"}}}},
+			expectedType: openrtb_ext.BidTypeBanner,
+		},
+		{
+			name:         "absent markup stays banner when no impression matches the bid",
+			mType:        0,
+			imps:         []openrtb2.Imp{{ID: "other-imp", Audio: &openrtb2.Audio{MIMEs: []string{"audio/mp4"}}}},
+			expectedType: openrtb_ext.BidTypeBanner,
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			bid := &openrtb2.Bid{MType: test.mType, Ext: test.bidExt}
-			assert.Equal(t, test.expectedType, getMediaTypeForBid(bid))
+			bid := &openrtb2.Bid{ImpID: "imp-1", MType: test.mType, Ext: test.bidExt}
+			assert.Equal(t, test.expectedType, getMediaTypeForBid(bid, test.imps))
 		})
 	}
 }

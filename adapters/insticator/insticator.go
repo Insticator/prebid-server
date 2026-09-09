@@ -119,7 +119,7 @@ func (a *adapter) buildEndpointURL(publisherId string, request *openrtb2.BidRequ
 }
 
 // getMediaTypeForBid figures out which media type this bid is for
-func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
+func getMediaTypeForBid(bid *openrtb2.Bid, imps []openrtb2.Imp) openrtb_ext.BidType {
 	switch bid.MType {
 	case openrtb2.MarkupBanner:
 		return openrtb_ext.BidTypeBanner
@@ -136,6 +136,21 @@ func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
 				return bidType
 			}
 		}
+	}
+
+	for i := range imps {
+		if imps[i].ID != bid.ImpID {
+			continue
+		}
+		if imps[i].Banner == nil {
+			if imps[i].Audio != nil && imps[i].Video == nil {
+				return openrtb_ext.BidTypeAudio
+			}
+			if imps[i].Video != nil && imps[i].Audio == nil {
+				return openrtb_ext.BidTypeVideo
+			}
+		}
+		break
 	}
 
 	return openrtb_ext.BidTypeBanner
@@ -258,7 +273,7 @@ func (a *adapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.R
 	for _, seatBid := range response.SeatBid {
 		for i := range seatBid.Bid {
 			bid := &seatBid.Bid[i]
-			bidType := getMediaTypeForBid(bid)
+			bidType := getMediaTypeForBid(bid, request.Imp)
 			b := &adapters.TypedBid{
 				Bid:      &seatBid.Bid[i],
 				BidType:  bidType,
