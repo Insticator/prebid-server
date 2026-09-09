@@ -18,15 +18,11 @@ import (
 
 type ext struct {
 	Insticator impInsticatorExt `json:"insticator"`
-	// Preserved from the incoming imp. The exchange resolves a placement from gpid, then
-	// data.pbadslot, then data.adserver.adslot; rebuilding imp.ext from scratch dropped
-	// all three. Forwarded whole so a key the exchange starts reading needs no change here.
-	GPID string          `json:"gpid,omitempty"`
-	Data json.RawMessage `json:"data,omitempty"`
-	TID  string          `json:"tid,omitempty"`
+	GPID       string           `json:"gpid,omitempty"`
+	Data       json.RawMessage  `json:"data,omitempty"`
+	TID        string           `json:"tid,omitempty"`
 }
 
-// impExt is the incoming imp.ext: the bidder params plus the keys worth preserving.
 type impExt struct {
 	adapters.ExtImpBidder
 	GPID string          `json:"gpid,omitempty"`
@@ -133,9 +129,6 @@ func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
 		return openrtb_ext.BidTypeAudio
 	}
 
-	// mtype is absent or unrecognised. Fall back to the media type echoed in
-	// the bid extension before assuming banner, so an audio or video bid is
-	// not mislabelled and given banner handling downstream.
 	if len(bid.Ext) > 0 {
 		var parsedExt bidExt
 		if err := jsonutil.Unmarshal(bid.Ext, &parsedExt); err == nil {

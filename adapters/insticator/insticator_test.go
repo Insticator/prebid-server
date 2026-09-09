@@ -92,8 +92,6 @@ func TestGetMediaTypeForBid(t *testing.T) {
 	}
 }
 
-// The JSON fixture harness ignores unknown keys, so bid metadata and bid video
-// are asserted here rather than in the exemplary files.
 func TestGetBidMetaMediaType(t *testing.T) {
 	tests := []struct {
 		name         string
