@@ -1,6 +1,7 @@
 package insticator
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -17,6 +18,20 @@ import (
 
 type ext struct {
 	Insticator impInsticatorExt `json:"insticator"`
+	// Preserved from the incoming imp. The exchange resolves a placement from gpid, then
+	// data.pbadslot, then data.adserver.adslot; rebuilding imp.ext from scratch dropped
+	// all three. Forwarded whole so a key the exchange starts reading needs no change here.
+	GPID string          `json:"gpid,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
+	TID  string          `json:"tid,omitempty"`
+}
+
+// impExt is the incoming imp.ext: the bidder params plus the keys worth preserving.
+type impExt struct {
+	adapters.ExtImpBidder
+	GPID string          `json:"gpid,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
+	TID  string          `json:"tid,omitempty"`
 }
 
 type impInsticatorExt struct {
@@ -114,9 +129,23 @@ func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
 		return openrtb_ext.BidTypeBanner
 	case openrtb2.MarkupVideo:
 		return openrtb_ext.BidTypeVideo
-	default:
-		return openrtb_ext.BidTypeBanner
+	case openrtb2.MarkupAudio:
+		return openrtb_ext.BidTypeAudio
 	}
+
+	// mtype is absent or unrecognised. Fall back to the media type echoed in
+	// the bid extension before assuming banner, so an audio or video bid is
+	// not mislabelled and given banner handling downstream.
+	if len(bid.Ext) > 0 {
+		var parsedExt bidExt
+		if err := jsonutil.Unmarshal(bid.Ext, &parsedExt); err == nil {
+			if bidType, err := openrtb_ext.ParseBidType(parsedExt.Insticator.MediaType); err == nil {
+				return bidType
+			}
+		}
+	}
+
+	return openrtb_ext.BidTypeBanner
 }
 
 func (a *adapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
@@ -286,7 +315,7 @@ func getBidVideo(bid *openrtb2.Bid, bidType openrtb_ext.BidType) *openrtb_ext.Ex
 }
 
 func makeImps(imp openrtb2.Imp) (openrtb2.Imp, string, string, error) {
-	var bidderExt adapters.ExtImpBidder
+	var bidderExt impExt
 	if err := jsonutil.Unmarshal(imp.Ext, &bidderExt); err != nil {
 		return openrtb2.Imp{}, "", "", &errortypes.BadInput{
 			Message: err.Error(),
@@ -306,6 +335,9 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, string, string, error) {
 			AdUnitId:    insticatorExt.AdUnitId,
 			PublisherId: insticatorExt.PublisherId,
 		},
+		GPID: bidderExt.GPID,
+		Data: bidderExt.Data,
+		TID:  bidderExt.TID,
 	}
 
 	impExtJSON, err := jsonutil.Marshal(impExt)
