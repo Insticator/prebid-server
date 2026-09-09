@@ -329,7 +329,7 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, string, string, error) {
 	}
 
 	// Directly construct the impExt
-	impExt := ext{
+	outgoingExt := ext{
 		Insticator: impInsticatorExt{
 			AdUnitId:    insticatorExt.AdUnitId,
 			PublisherId: insticatorExt.PublisherId,
@@ -339,7 +339,7 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, string, string, error) {
 		TID:  bidderExt.TID,
 	}
 
-	impExtJSON, err := jsonutil.Marshal(impExt)
+	impExtJSON, err := jsonutil.Marshal(outgoingExt)
 	if err != nil {
 		return openrtb2.Imp{}, "", "", &errortypes.BadInput{
 			Message: err.Error(),
