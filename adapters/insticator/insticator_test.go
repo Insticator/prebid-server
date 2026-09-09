@@ -55,15 +55,23 @@ func TestGetMediaTypeForBid(t *testing.T) {
 			expectedType: openrtb_ext.BidTypeAudio,
 		},
 		{
-			name:         "absent markup falls back to the ext media type",
+			name:         "absent markup ignores an ext media type with no impression to infer from",
 			mType:        0,
 			bidExt:       json.RawMessage(`{"insticator":{"mediaType":"audio"}}`),
+			expectedType: openrtb_ext.BidTypeBanner,
+		},
+		{
+			name:         "the impression wins over a conflicting ext media type",
+			mType:        0,
+			bidExt:       json.RawMessage(`{"insticator":{"mediaType":"video"}}`),
+			imps:         []openrtb2.Imp{{ID: "imp-1", Audio: &openrtb2.Audio{MIMEs: []string{"audio/mp4"}}}},
 			expectedType: openrtb_ext.BidTypeAudio,
 		},
 		{
-			name:         "unknown markup falls back to the ext media type",
+			name:         "unknown markup infers from the impression rather than the ext",
 			mType:        openrtb2.MarkupNative,
-			bidExt:       json.RawMessage(`{"insticator":{"mediaType":"video"}}`),
+			bidExt:       json.RawMessage(`{"insticator":{"mediaType":"banner"}}`),
+			imps:         []openrtb2.Imp{{ID: "imp-1", Video: &openrtb2.Video{MIMEs: []string{"video/mp4"}}}},
 			expectedType: openrtb_ext.BidTypeVideo,
 		},
 		{

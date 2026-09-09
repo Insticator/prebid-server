@@ -129,15 +129,6 @@ func getMediaTypeForBid(bid *openrtb2.Bid, imps []openrtb2.Imp) openrtb_ext.BidT
 		return openrtb_ext.BidTypeAudio
 	}
 
-	if len(bid.Ext) > 0 {
-		var parsedExt bidExt
-		if err := jsonutil.Unmarshal(bid.Ext, &parsedExt); err == nil {
-			if bidType, err := openrtb_ext.ParseBidType(parsedExt.Insticator.MediaType); err == nil {
-				return bidType
-			}
-		}
-	}
-
 	for i := range imps {
 		if imps[i].ID != bid.ImpID {
 			continue
