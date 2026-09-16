@@ -129,17 +129,21 @@ func getMediaTypeForBid(bid *openrtb2.Bid, imps []openrtb2.Imp) openrtb_ext.BidT
 		return openrtb_ext.BidTypeAudio
 	}
 
+	// Without mtype the type is only recoverable from the imp. A multi-format imp
+	// stays ambiguous, so fall back in a fixed order rather than naming a type the
+	// imp never offered.
 	for i := range imps {
 		if imps[i].ID != bid.ImpID {
 			continue
 		}
-		if imps[i].Banner == nil {
-			if imps[i].Audio != nil && imps[i].Video == nil {
-				return openrtb_ext.BidTypeAudio
-			}
-			if imps[i].Video != nil && imps[i].Audio == nil {
-				return openrtb_ext.BidTypeVideo
-			}
+		if imps[i].Banner != nil {
+			return openrtb_ext.BidTypeBanner
+		}
+		if imps[i].Video != nil {
+			return openrtb_ext.BidTypeVideo
+		}
+		if imps[i].Audio != nil {
+			return openrtb_ext.BidTypeAudio
 		}
 		break
 	}

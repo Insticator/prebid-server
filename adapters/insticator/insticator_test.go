@@ -110,6 +110,18 @@ func TestGetMediaTypeForBid(t *testing.T) {
 			expectedType: openrtb_ext.BidTypeBanner,
 		},
 		{
+			name:         "absent markup never names banner when the impression has none",
+			mType:        0,
+			imps:         []openrtb2.Imp{{ID: "imp-1", Video: &openrtb2.Video{MIMEs: []string{"video/mp4"}}, Audio: &openrtb2.Audio{MIMEs: []string{"audio/mp4"}}}},
+			expectedType: openrtb_ext.BidTypeVideo,
+		},
+		{
+			name:         "absent markup stays banner when the impression offers banner and video",
+			mType:        0,
+			imps:         []openrtb2.Imp{{ID: "imp-1", Banner: &openrtb2.Banner{}, Video: &openrtb2.Video{MIMEs: []string{"video/mp4"}}}},
+			expectedType: openrtb_ext.BidTypeBanner,
+		},
+		{
 			name:         "absent markup stays banner when no impression matches the bid",
 			mType:        0,
 			imps:         []openrtb2.Imp{{ID: "other-imp", Audio: &openrtb2.Audio{MIMEs: []string{"audio/mp4"}}}},
