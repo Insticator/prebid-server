@@ -117,18 +117,14 @@ func (a *adapter) buildEndpointURL(publisherId string, request *openrtb2.BidRequ
 }
 
 // getMediaTypeForBid figures out which media type this bid is for
-func getMediaTypeForBid(bid *openrtb2.Bid) (openrtb_ext.BidType, error) {
+func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
 	switch bid.MType {
-	case openrtb2.MarkupBanner:
-		return openrtb_ext.BidTypeBanner, nil
 	case openrtb2.MarkupVideo:
-		return openrtb_ext.BidTypeVideo, nil
+		return openrtb_ext.BidTypeVideo
 	case openrtb2.MarkupAudio:
-		return openrtb_ext.BidTypeAudio, nil
+		return openrtb_ext.BidTypeAudio
 	default:
-		return "", &errortypes.BadServerResponse{
-			Message: fmt.Sprintf("Failed to parse bid media type for impression %s.", bid.ImpID),
-		}
+		return openrtb_ext.BidTypeBanner
 	}
 }
 
@@ -246,15 +242,10 @@ func (a *adapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.R
 	if response.Cur != "" {
 		bidResponse.Currency = response.Cur
 	}
-	var errs []error
 	for _, seatBid := range response.SeatBid {
 		for i := range seatBid.Bid {
 			bid := &seatBid.Bid[i]
-			bidType, err := getMediaTypeForBid(bid)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
+			bidType := getMediaTypeForBid(bid)
 			b := &adapters.TypedBid{
 				Bid:      &seatBid.Bid[i],
 				BidType:  bidType,
@@ -264,7 +255,7 @@ func (a *adapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.R
 			bidResponse.Bids = append(bidResponse.Bids, b)
 		}
 	}
-	return bidResponse, errs
+	return bidResponse, nil
 }
 
 // getBidMeta extracts metadata from the bid for brand safety and reporting

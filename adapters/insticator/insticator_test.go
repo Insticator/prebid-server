@@ -31,7 +31,6 @@ func TestGetMediaTypeForBid(t *testing.T) {
 		mType        openrtb2.MarkupType
 		bidExt       json.RawMessage
 		expectedType openrtb_ext.BidType
-		expectErr    bool
 	}{
 		{
 			name:         "banner markup maps to banner",
@@ -55,34 +54,27 @@ func TestGetMediaTypeForBid(t *testing.T) {
 			expectedType: openrtb_ext.BidTypeAudio,
 		},
 		{
-			name:      "absent markup is reported rather than guessed at",
-			mType:     0,
-			expectErr: true,
+			name:         "absent markup falls back to banner",
+			mType:        0,
+			expectedType: openrtb_ext.BidTypeBanner,
 		},
 		{
-			name:      "absent markup is reported even when the ext names a media type",
-			mType:     0,
-			bidExt:    json.RawMessage(`{"insticator":{"mediaType":"audio"}}`),
-			expectErr: true,
+			name:         "absent markup falls back to banner even when the ext names a media type",
+			mType:        0,
+			bidExt:       json.RawMessage(`{"insticator":{"mediaType":"audio"}}`),
+			expectedType: openrtb_ext.BidTypeBanner,
 		},
 		{
-			name:      "a media type the adapter does not serve is reported",
-			mType:     openrtb2.MarkupNative,
-			expectErr: true,
+			name:         "a media type the adapter does not serve falls back to banner",
+			mType:        openrtb2.MarkupNative,
+			expectedType: openrtb_ext.BidTypeBanner,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			bid := &openrtb2.Bid{ImpID: "imp-1", MType: test.mType, Ext: test.bidExt}
-			bidType, err := getMediaTypeForBid(bid)
-			if test.expectErr {
-				assert.Error(t, err)
-				assert.Empty(t, bidType)
-				return
-			}
-			assert.NoError(t, err)
-			assert.Equal(t, test.expectedType, bidType)
+			assert.Equal(t, test.expectedType, getMediaTypeForBid(bid))
 		})
 	}
 }

@@ -152,16 +152,31 @@
       }
     }
   ],
-  "expectedMakeBidsErrors": [
-    {
-      "value": "Failed to parse bid media type for impression test-imp-id.",
-      "comparison": "literal"
-    }
-  ],
   "expectedBidResponses": [
     {
       "currency": "USD",
-      "bids": []
+      "bids": [
+        {
+          "bid": {
+            "id": "8ee514f1-b2b8-4abb-89fd-084437d1e800",
+            "impid": "test-imp-id",
+            "price": 0.5,
+            "adm": "some-test-vast-audio-ad",
+            "adomain": [
+              "insticator.com"
+            ],
+            "cat": [
+              "IAB1-1"
+            ],
+            "dur": 30,
+            "crid": "crid_10",
+            "ext": {
+              "insticator": {}
+            }
+          },
+          "type": "banner"
+        }
+      ]
     }
   ]
 }
