@@ -117,36 +117,19 @@ func (a *adapter) buildEndpointURL(publisherId string, request *openrtb2.BidRequ
 }
 
 // getMediaTypeForBid figures out which media type this bid is for
-func getMediaTypeForBid(bid *openrtb2.Bid, imps []openrtb2.Imp) openrtb_ext.BidType {
+func getMediaTypeForBid(bid *openrtb2.Bid) (openrtb_ext.BidType, error) {
 	switch bid.MType {
 	case openrtb2.MarkupBanner:
-		return openrtb_ext.BidTypeBanner
+		return openrtb_ext.BidTypeBanner, nil
 	case openrtb2.MarkupVideo:
-		return openrtb_ext.BidTypeVideo
+		return openrtb_ext.BidTypeVideo, nil
 	case openrtb2.MarkupAudio:
-		return openrtb_ext.BidTypeAudio
+		return openrtb_ext.BidTypeAudio, nil
+	default:
+		return "", &errortypes.BadServerResponse{
+			Message: fmt.Sprintf("Failed to parse bid media type for impression %s.", bid.ImpID),
+		}
 	}
-
-	// Without mtype the type is only recoverable from the imp. A multi-format imp
-	// stays ambiguous, so fall back in a fixed order rather than naming a type the
-	// imp never offered.
-	for i := range imps {
-		if imps[i].ID != bid.ImpID {
-			continue
-		}
-		if imps[i].Banner != nil {
-			return openrtb_ext.BidTypeBanner
-		}
-		if imps[i].Video != nil {
-			return openrtb_ext.BidTypeVideo
-		}
-		if imps[i].Audio != nil {
-			return openrtb_ext.BidTypeAudio
-		}
-		break
-	}
-
-	return openrtb_ext.BidTypeBanner
 }
 
 func (a *adapter) MakeRequests(request *openrtb2.BidRequest, requestInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
@@ -263,10 +246,15 @@ func (a *adapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.R
 	if response.Cur != "" {
 		bidResponse.Currency = response.Cur
 	}
+	var errs []error
 	for _, seatBid := range response.SeatBid {
 		for i := range seatBid.Bid {
 			bid := &seatBid.Bid[i]
-			bidType := getMediaTypeForBid(bid, request.Imp)
+			bidType, err := getMediaTypeForBid(bid)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
 			b := &adapters.TypedBid{
 				Bid:      &seatBid.Bid[i],
 				BidType:  bidType,
@@ -276,7 +264,7 @@ func (a *adapter) MakeBids(request *openrtb2.BidRequest, requestData *adapters.R
 			bidResponse.Bids = append(bidResponse.Bids, b)
 		}
 	}
-	return bidResponse, nil
+	return bidResponse, errs
 }
 
 // getBidMeta extracts metadata from the bid for brand safety and reporting
