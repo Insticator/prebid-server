@@ -20,14 +20,12 @@ type ext struct {
 	Insticator impInsticatorExt `json:"insticator"`
 	GPID       string           `json:"gpid,omitempty"`
 	Data       json.RawMessage  `json:"data,omitempty"`
-	TID        string           `json:"tid,omitempty"`
 }
 
 type impExt struct {
 	adapters.ExtImpBidder
 	GPID string          `json:"gpid,omitempty"`
 	Data json.RawMessage `json:"data,omitempty"`
-	TID  string          `json:"tid,omitempty"`
 }
 
 type impInsticatorExt struct {
@@ -340,7 +338,6 @@ func makeImps(imp openrtb2.Imp) (openrtb2.Imp, string, string, error) {
 		},
 		GPID: bidderExt.GPID,
 		Data: bidderExt.Data,
-		TID:  bidderExt.TID,
 	}
 
 	impExtJSON, err := jsonutil.Marshal(outgoingExt)

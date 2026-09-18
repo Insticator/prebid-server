@@ -25,8 +25,7 @@
               "adslot": "/1111/homepage/leaderboard"
             },
             "pageType": "article"
-          },
-          "tid": "tid-abc-123"
+          }
         }
       }
     ],
@@ -98,8 +97,7 @@
                     "adslot": "/1111/homepage/leaderboard"
                   },
                   "pageType": "article"
-                },
-                "tid": "tid-abc-123"
+                }
               }
             }
           ],
