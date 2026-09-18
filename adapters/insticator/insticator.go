@@ -119,6 +119,8 @@ func (a *adapter) buildEndpointURL(publisherId string, request *openrtb2.BidRequ
 // getMediaTypeForBid figures out which media type this bid is for
 func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
 	switch bid.MType {
+	case openrtb2.MarkupBanner:
+		return openrtb_ext.BidTypeBanner
 	case openrtb2.MarkupVideo:
 		return openrtb_ext.BidTypeVideo
 	case openrtb2.MarkupAudio:
