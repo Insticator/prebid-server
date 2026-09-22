@@ -65,8 +65,13 @@ func TestGetMediaTypeForBid(t *testing.T) {
 			expectedType: openrtb_ext.BidTypeBanner,
 		},
 		{
-			name:         "a media type the adapter does not serve falls back to banner",
+			name:         "native markup maps to native",
 			mType:        openrtb2.MarkupNative,
+			expectedType: openrtb_ext.BidTypeNative,
+		},
+		{
+			name:         "a markup type the adapter does not serve falls back to banner",
+			mType:        openrtb2.MarkupType(99),
 			expectedType: openrtb_ext.BidTypeBanner,
 		},
 	}
@@ -88,6 +93,7 @@ func TestGetBidMetaMediaType(t *testing.T) {
 		{name: "audio", bidType: openrtb_ext.BidTypeAudio, expectedType: "audio"},
 		{name: "video", bidType: openrtb_ext.BidTypeVideo, expectedType: "video"},
 		{name: "banner", bidType: openrtb_ext.BidTypeBanner, expectedType: "banner"},
+		{name: "native", bidType: openrtb_ext.BidTypeNative, expectedType: "native"},
 	}
 
 	for _, test := range tests {
