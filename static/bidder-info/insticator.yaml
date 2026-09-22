@@ -12,11 +12,13 @@ capabilities:
       - banner
       - video
       - audio
+      - native
   site:
     mediaTypes:
       - banner
       - video
       - audio
+      - native
 userSync:
   iframe:
     url: "https://sync.hunchme.com?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&redirect={{.RedirectURL}}"
