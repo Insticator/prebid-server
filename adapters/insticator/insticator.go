@@ -114,6 +114,8 @@ func getMediaTypeForBid(bid *openrtb2.Bid) openrtb_ext.BidType {
 		return openrtb_ext.BidTypeBanner
 	case openrtb2.MarkupVideo:
 		return openrtb_ext.BidTypeVideo
+	case openrtb2.MarkupAudio:
+		return openrtb_ext.BidTypeAudio
 	default:
 		return openrtb_ext.BidTypeBanner
 	}
